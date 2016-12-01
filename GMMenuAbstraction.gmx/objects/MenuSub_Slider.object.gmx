@@ -8,6 +8,31 @@
   <parentName>par_menu_slider</parentName>
   <maskName>&lt;undefined&gt;</maskName>
   <events>
+    <event eventtype="0" enumb="0">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>event_inherited();
+
+bar_col = c_lime;
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
     <event eventtype="8" enumb="0">
       <action>
         <libid>1</libid>
@@ -30,37 +55,37 @@
 //draw_set_colour( c_lime);
 //draw_rectangle( x, y, x + 100*scale, y+10, false);
 
-if( parent_menu.has_focus == parent_menu)
+if( parent_menu.has_general_focus)
 {
     if( selected)
     {
         if( has_focus == id)
         {
-            draw_set_colour( c_red);
+            bar_col = c_red;
         }
         else
         {
-            draw_set_colour( c_blue);
+            bar_col =  c_blue;
         }
     }
     else
     {
-        draw_set_colour( c_black);
+        bar_col = c_fuchsia;
     }
     
     draw_set_colour( c_black);
-draw_rectangle( x-1, y-1, x+101, y + 11, true);
-draw_set_colour( c_lime);
-draw_rectangle( x, y, x + 100*scale, y+10, false);
+    draw_rectangle( x-1, y-1, x+101, y + 11, true);
+    draw_set_colour( bar_col);
+    draw_rectangle( x, y, x + 100*scale, y+10, false);
 }
 
-if( has_focus == id)
+/*if( has_focus == id)
 {
     draw_set_colour( c_red);
-   draw_set_colour( c_black);
-draw_rectangle( x-1, y-1, x+101, y + 11, true);
-draw_set_colour( c_lime);
-draw_rectangle( x, y, x + 100*scale, y+10, false);
+    draw_set_colour( c_black);
+    draw_rectangle( x-1, y-1, x+101, y + 11, true);
+    draw_set_colour( c_lime);
+    draw_rectangle( x, y, x + 100*scale, y+10, false);
 }
 
 </string>

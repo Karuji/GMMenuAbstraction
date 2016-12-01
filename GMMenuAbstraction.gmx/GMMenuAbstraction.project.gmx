@@ -12,6 +12,16 @@
     <scripts name="MenuAbstraction">
       <script>scripts\scr_menu_add_item.gml</script>
       <script>scripts\scr_Menu_Test.gml</script>
+      <script>scripts\menu_get_up.gml</script>
+      <script>scripts\menu_get_down.gml</script>
+      <script>scripts\menu_get_left.gml</script>
+      <script>scripts\menu_get_right.gml</script>
+      <script>scripts\menu_get_return.gml</script>
+      <script>scripts\menu_get_escape.gml</script>
+      <script>scripts\menu_get_destroy.gml</script>
+      <script>scripts\menutree_get_generalfocus.gml</script>
+      <script>scripts\menutree_get_currentfocus.gml</script>
+      <script>scripts\menutree_lose_generalfocus.gml</script>
     </scripts>
   </scripts>
   <objects name="objects">

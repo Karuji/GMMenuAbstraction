@@ -25,13 +25,26 @@
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>
+            <string>event_inherited();
 has_focus   = id;
 parent_menu = id;
 selected    = false;
 lose_focus  = false;
 actionable  = true;
 scale       = 0.5;
+scale_prev  = 0.5;
+// delta is how much a button press will change the scale by.
+delta       = 0.05;
+enabled     = true;
+
+get_inc = menu_get_right;
+get_dec = menu_get_left;
+
+// Misc stuff for draw code
+
+bWidth  = 2;
+sHeight = 20;
+sWidth  = 100;
 </string>
           </argument>
         </arguments>
@@ -58,25 +71,148 @@ scale       = 0.5;
 if( has_focus == id &amp;&amp; actionable)
 {
     // Escape the current menu system.
-    if( keyboard_check_pressed( vk_escape))
+    if( script_execute( get_escape))
     {
         // If the current menu system is a submenu then we return focus to the parent.
         if( parent_menu != id)
         {
             has_focus = parent_menu;
             parent_menu.has_focus = parent_menu;
+            event_user( 0);
+        }
+    }
+    
+    if( script_execute( get_return))
+    {
+        // If the current menu system is a submenu then we return focus to the parent.
+        if( parent_menu != id)
+        {
+            has_focus = parent_menu;
+            parent_menu.has_focus = parent_menu;
+            event_user( 1);
         }
     }
     
     // Check inputs for movement in a menu.
     // This is placeholder and I'm assuming you have your own method of handling input
     // in the game that will replace this.
-    scale += 0.1* keyboard_check_pressed( vk_right);
-    scale -= 0.1* keyboard_check_pressed( vk_left);
+    scale += delta* script_execute( get_inc);
+    scale -= delta* script_execute( get_dec);
     
     scale = clamp( scale, 0, 1);
     
+    if( scale != scale_prev)
+    {
+        if( scale &gt; scale_prev)
+        {
+            event_user( 2);
+        }
+        
+        if( scale &lt; scale_prev)
+        {
+            event_user( 3);
+        }
+        
+        scale_prev = scale;
+    }
+    
 }
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="7" enumb="13">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>// Call when scale decrease
+// to be used in child objects.
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="7" enumb="12">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>// Call when scale has inceased
+// to be used in child objects.
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="7" enumb="11">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>// Call when losing focus of the slider via accepting
+// to be used in child objects.
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="7" enumb="10">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>// Call when losing focus of the slider via escaping
+// to be used in child objects.
 </string>
           </argument>
         </arguments>
@@ -100,6 +236,45 @@ if( has_focus == id &amp;&amp; actionable)
           <argument>
             <kind>1</kind>
             <string>// Nothing, this is just here to stop an inheritence.
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="8" enumb="0">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>if( parent_menu.has_general_focus)
+{
+
+    draw_set_colour( c_black);
+    // Left
+    draw_rectangle( x -1, y, x -bWidth -1, y +sHeight, false);
+    // Right
+    draw_rectangle( x +sWidth +1, y, x +sWidth +bWidth +1, y +sHeight, false);
+    // Top
+    draw_rectangle( x -bWidth-1, y -bWidth -1, x +sWidth +bWidth +1, y -1, false);
+    // Bot
+    draw_rectangle( x -bWidth-1, y +sHeight +bWidth +1, x +sWidth +bWidth +1, y +sHeight +1, false);
+    
+    draw_set_alpha( image_alpha);
+    draw_set_colour( c_lime);
+    draw_rectangle( x, y, x + sWidth*scale, y +sHeight, false);
+}
 </string>
           </argument>
         </arguments>

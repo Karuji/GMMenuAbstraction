@@ -15,7 +15,7 @@ if( argument_count == 3)
 
 // Instance exists is important since some menu items can be dependant on a global
 // state. Which can allow the objects to destroy themselves in their create events,
-// and the menu system will still function even though they are no longer in.
+// and the menu system will still function even though they are no longer in game.
 if( instance_exists( __item))
 {
     with( __id)
@@ -31,8 +31,15 @@ if( instance_exists( __item))
                     ds_grid_resize( menu, __width+1, __height);
                     menu[# __width, 0] = __item;
                     
-                    __item.parent_menu = __id;
-                    __item.has_focus = __id;
+                    with( __item)
+                    {
+                        // Other in the below statements will refer to the __id
+                        // since that is the containter of this with.
+                        // Otherwise the variables assigned won't be correct.
+                        parent_menu       = other.id;
+                        has_focus         = other.id;
+                        has_general_focus = false;
+                    }
                 }
             }
             
@@ -46,7 +53,10 @@ if( instance_exists( __item))
                     menu[# __width, 0] = __item;
                     menu[# __width, 1] = __atch;
                     
-                    __item.parent_menu = __id;
+                    with( __item)
+                    {
+                        parent_menu = other.id;
+                    }
                 }
             }
         }

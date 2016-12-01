@@ -27,7 +27,7 @@
             <kind>1</kind>
             <string>parent_menu = 0;
 selected = false;
-show_debug_message(id);
+enabled = true;
 </string>
           </argument>
         </arguments>

@@ -25,7 +25,7 @@
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>if( parent_menu.has_focus == parent_menu)
+            <string>if( parent_menu.has_general_focus)
 {
     if( selected)
     {

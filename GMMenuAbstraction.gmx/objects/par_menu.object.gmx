@@ -68,12 +68,13 @@ menu = ds_grid_create(0,2);
 // it runs from 0 to ds_grid_width( menu) -1.
 startPos = 0;
 
-Pos = 0;
-Pos_previous = 0;
-
 // Has Focus is for when there are (sub)menues in menus.
 // It is used to determine which part of the menu system will react to input.
 has_focus = id;
+
+// Has general focus is used to determine if a parent menu, or one of its child menus
+// currently has focus.
+has_general_focus = true;
 
 // Parent menu is for when a menu is a sub menu.
 // It serves the dual purpose of determining when a menu is the root.
@@ -81,11 +82,46 @@ has_focus = id;
 // And providing a reference to a parent to return focus to.
 parent_menu = id;
 
+// Enabled is for when a menu object exists, but you do not want it
+// to run its step event code.
+enabled = true;
+
+// Generic references to scripts for moving the position of the menu Pos.
+// This is so that you can easily tie MenuAbstraction into your input system
+// It's also useful since you might need menus which move vertically or horizonatally.
+get_next = menu_get_down;
+get_prev = menu_get_up;
+
+// Generic script refs to escape and return.
+// Same reason as previous and next above.
+get_return = menu_get_return;
+get_escape = menu_get_escape;
+get_destoy = menu_get_destroy;
+
+// When destroy_menu_items is set to true it will destroy the
+// the instances in menu in addition to the datastructure itself.
+destroy_menu_items = true;
+
+// This is to allow the root menu to call it's destroy and related functions.
+// Would be used if you are paused and want to maintain a single button to exit
+// the menu and unpause the game.
+root_can_destoy = true;
+
 // Selected is ONLY for sub menus.
 // Selected here serves the same purpose as in the menu_item:
 // to enable the object to handle a graphic representation that the parent menu
 // is currently focusing on it.
 selected = false;
+
+// This is a variable to make a sub menu be actionable without having to select the menu
+// itself. This is to be used when a parent menu uses vertical inputs, and the child
+// menu uses horizontal inputs so the user doesn't have to enter and return.
+select_is_focus = false;
+
+// Auto_next_enabled will traverse the menu item until if finds the next
+// menu item that is enabled.
+// Menu items that are not enabled will not run their attatched script.
+auto_next_enabled = true;
 
 // This enables the wraping of focus of menu items.
 // It's not really something that should ever be changed via code.
@@ -93,10 +129,19 @@ selected = false;
 // be done in the create even so that step events are purely inherited.
 can_wrap = true;
 
-lose_focus = false;
-actionable = true;
+// ===========================================================================
+// ===========================BACK END VARIABLES==============================
+// ===========================================================================
 
-show_debug_message("Create");
+// The following variables are used by the class for automated functions,
+// and should not be changed.
+lose_focus = false;
+// Actionable needs to be false since we need to ignore the first frame when a menu
+// can be created since with pause menus it is likely the same key to exit them.
+actionable = false;
+delta_pos  = 1;
+Pos = 0;
+Pos_previous = 0;
 </string>
           </argument>
         </arguments>
@@ -119,8 +164,28 @@ show_debug_message("Create");
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>if( ds_exists( menu, ds_type_grid))
+            <string>if( destroy_menu_items)
 {
+    if( ds_exists( menu, ds_type_grid))
+    {
+        // Destroy contents of the DataStructure.
+        for( var _i = 0; _i &lt; ds_grid_width( menu); _i++)
+        {
+            var _item = menu[# _i, 0].id;
+            if( instance_exists( _item))
+            {
+                with( _item)
+                {
+                    instance_destroy();
+                }
+            }
+        }
+    }
+}
+
+if( ds_exists( menu, ds_type_grid))
+{
+    // Actually the desroy the DataStructure.
     ds_grid_destroy( menu);
 }
 </string>
@@ -177,76 +242,224 @@ if( !actionable)
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>// Menus should only operate if they currently have focus.
-if( has_focus == id &amp;&amp; actionable)
+            <string>// select_is_focus is only to be used on a submenu.
+// The submenu MUST have different input methods to its parent.
+if( select_is_focus)
+{
+    if( selected &amp;&amp; parent_menu.has_focus == parent_menu.id)
+    {
+        has_focus = id;
+        has_general_focus = true;
+    }
+    else
+    {
+        has_focus = 0;
+        has_general_focus = false;
+    }
+    
+    if( !parent_menu.actionable)
+    {
+        actionable = false;
+    }
+}
+
+if( parent_menu == id &amp;&amp; root_can_destoy 
+    &amp;&amp; has_general_focus &amp;&amp; actionable &amp;&amp; enabled)
+{
+    if( script_execute( menu_get_destroy))
+    {
+        event_user( 1);
+        exit;
+    }
+}
+
+// Menus should only operate if they currently have focus.  
+if( has_focus == id &amp;&amp; actionable &amp;&amp; enabled)
 {
     // Escape the current menu system.
-    if( keyboard_check_pressed( vk_escape))
+    // This cannot be called if !select_is_focus since the parent menu already has focus.
+    if( script_execute( get_escape) &amp;&amp; !select_is_focus)
     {
         // If the current menu system is a submenu then we return focus to the parent.
         if( parent_menu != id)
         {
             has_focus = parent_menu;
+            has_general_focus = false;
             parent_menu.has_focus = parent_menu;
+            exit;
         }
         else
         {
             // I really don't know what the case of returning from a main menu in
-            // a variety of games could be, but it would go here.
+            // a variety of games could be, but it will call the User Defined 0.
+            event_user( 0);
+            exit;
         }
-    }
+    }  
     
-    // Check inputs for movement in a menu.
-    // This is placeholder and I'm assuming you have your own method of handling input
-    // in the game that will replace this.
-    Pos += keyboard_check_pressed( vk_down);
-    Pos -= keyboard_check_pressed( vk_up);
     
-    // This is to wrap the position of the the focus.
-    if( can_wrap)
+    // Operations on the menu should only be performed if there are items in the menu.
+    if( ds_grid_width( menu) &gt; 0)
     {
-        if( Pos &lt; 0)
-        {
-            Pos = ds_grid_width( menu) -1;
-        }        
-        if( Pos &gt; ds_grid_width( menu) -1)
-        {
-            Pos = 0;
-        }
-    }
+        // Check inputs for movement in a menu.
+        // This is placeholder and I'm assuming you have your own method of handling input
+        // in the game that will replace this.
+        Pos += script_execute( get_next);
+        Pos -= script_execute( get_prev);    
     
-    // Changing the current menu item that is being highlighted.
-    if( Pos != Pos_previous)
-    {
-        menu[# Pos_previous, 0].selected = false;
-        menu[# Pos, 0].selected = true;
-        Pos_previous = Pos;
-    }
-    
-    // Check if the user is confirming use of an item, or
-    // selection of a submenu.
-    if( keyboard_check_pressed( vk_enter))
-    {         
-        // If the selected item is a menu we shift focus to that menu.
-        if( object_is_ancestor( menu[# Pos, 0].object_index, par_menu))
+        // Check that the current item is enabled.
+        // If it's not we go to the next enabled item.
+        delta_pos = 0;
+        if( Pos != Pos_previous)
         {
-            with( menu[# Pos, 0])
+            var count = 0;
+            var relative = 0;
+            
+            if( Pos + delta_pos &gt; ds_grid_width( menu)-1)
             {
-                has_focus = id;
-                actionable = false;
-                other.has_focus = id;
-                other.actionable = false;
+                relative -= ds_grid_width( menu);
             }
-
+            if( Pos + delta_pos &lt; 0)
+            {
+                relative += ds_grid_width( menu);
+            }
+            
+            while( menu[# Pos + delta_pos + relative, 0].enabled == false &amp;&amp; auto_next_enabled)
+            {
+                ++count;
+                if( count &gt;= ds_grid_width( menu))
+                {
+                    show_error( object_get_name(id) + " has no enabled menu items.", true);
+                } 
+                
+                delta_pos += sign(Pos - Pos_previous);
+            }
+            
+            Pos += delta_pos;
         }
-
-        // If the selected item is an item: execute its script.
-        if( object_is_ancestor( menu[# Pos, 0].object_index, par_menu_item))
+        
+        // This is to wrap the position of the the focus.
+        if( can_wrap)
         {
-            script_execute( menu[# Pos, 1]);
+            if( Pos &lt; 0)
+            {
+                Pos += ds_grid_width( menu);
+            }         
+            if( Pos &gt; ds_grid_width( menu) -1)
+            {
+                Pos -= ds_grid_width( menu);
+            }
+        }
+        // Or hold pos if there is no wrapping.
+        else
+        {
+            if( Pos &lt; 0)
+            {
+                Pos = Pos_previous;
+            }
+            if( Pos &gt; ds_grid_width( menu) -1)
+            {
+                Pos = Pos_previous;
+            }
+        }    
+        
+        if( Pos != Pos_previous)
+        {
+            menu[# Pos_previous, 0].selected = false;
+            menu[# Pos, 0].selected = true;
+            Pos_previous = Pos;
+            actionable = false;
+            exit;
+        }
+    
+        // Check if the user is confirming use of an item, or
+        // selection of a submenu.
+        if( script_execute( get_return))
+        {
+            if( menu[# Pos, 0].enabled == true)
+            {         
+                // If the selected item is a menu we shift focus to that menu.
+                if( object_is_ancestor( menu[# Pos, 0].object_index, par_menu))
+                {
+                    // Check is a submenu's select_is_focus is false.
+                    // There is no need to move focus to it if it is true,
+                    // as it already has focus.
+                    var _submenu = menu[# Pos, 0]
+                    if( !_submenu.select_is_focus)
+                    {
+                        with( _submenu)
+                        {
+                            has_focus = id;
+                            has_general_focus = true;
+                            actionable = false;
+                            other.has_focus = id;
+                            other.actionable = false;
+                        }
+                    }
+                }
+        
+                // If the selected item is an item: execute its script.
+                if( object_is_ancestor( menu[# Pos, 0].object_index, par_menu_item))
+                {
+                    script_execute( menu[# Pos, 1], menu[# Pos, 0], id);
+                }
+            }
         }
     }
 }
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="7" enumb="11">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>// Dear Julian: we're using 15 'cause a bunch of menus are using things in the 0-5 range,
+// when you put this into the public stuff this should be ev_user1.
+
+// Instance destroy is called here instead of in the step event since it might not
+// always be desirable to destroy the object.
+// This leaves the option to not call event_inherited in the child menu so it won't
+// be destroyed at this time.
+instance_destroy();
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="7" enumb="10">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>// Called when escaping and the root menu has focus.
 </string>
           </argument>
         </arguments>
@@ -288,8 +501,6 @@ if( ds_exists( menu, ds_type_grid))
         
         menu[# startPos, 0].selected = true;
     }
-    
-    show_debug_message("Room Start");
 }
 </string>
           </argument>
